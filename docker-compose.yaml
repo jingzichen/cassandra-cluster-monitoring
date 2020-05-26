@@ -1,0 +1,164 @@
+version: "3"
+
+services:
+  cassandra1:
+    build: ./cassandra_config
+    # image: "mycassandra:3.11.3"
+    restart: on-failure
+    # command: /bin/bash -c "echo 'Waiting for seed node' && sleep 30 && /docker-entrypoint.sh cassandra -f"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=cassandra
+      - CASSANDRA_DC=CAT_PROD_DC1
+      - CASSANDRA_RACK=CAT_PROD_RAC1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      # - MAX_HEAP_SIZE=14336M
+      # - HEAP_NEWSIZE=1024M
+      - CASSANDRA_NUM_TOKENS=256
+      - CASSANDRA_BROADCAST_ADDRESS=cassandra1
+      - CASSANDRA_SEEDS=cassandra3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1000M
+    ports:
+      - "7000:7000"
+      - "9042:9042"
+      - "6121:6121"
+    volumes:
+      - /data/cassandra1:/var/lib/cassandra
+    depends_on:
+      - "cassandra3"
+
+  cassandra2:
+    build: ./cassandra_config
+    # image: "mycassandra:3.11.3"
+    restart: on-failure
+    # command: /bin/bash -c "echo 'Waiting for seed node' && sleep 80 && /docker-entrypoint.sh cassandra -f"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=cassandra
+      - CASSANDRA_DC=CAT_PROD_DC1
+      - CASSANDRA_RACK=CAT_PROD_RAC1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_NUM_TOKENS=256
+      - CASSANDRA_BROADCAST_ADDRESS=cassandra2
+      - CASSANDRA_SEEDS=cassandra3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1000M
+    ports:
+      - "7001:7000"
+      - "9043:9042"
+      - "6122:6121"
+    volumes:
+      - /data/cassandra2:/var/lib/cassandra
+    depends_on:
+      - "cassandra3"
+
+  cassandra3:
+    build: ./cassandra_config
+    # image: "mycassandra:3.11.3"
+    container_name: cassandra3
+    restart: on-failure
+    environment:
+      - CASSANDRA_CLUSTER_NAME=cassandra
+      - CASSANDRA_DC=CAT_PROD_DC1
+      - CASSANDRA_RACK=CAT_PROD_RAC1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_NUM_TOKENS=256
+      - CASSANDRA_BROADCAST_ADDRESS=cassandra3
+      # - CASSANDRA_SEEDS=cassandra2,cassandra3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1000M
+    ports:
+      - "7002:7000"
+      - "9044:9042"
+      - "6123:6121"
+    volumes:
+      - /data/cassandra3:/var/lib/cassandra
+    # depends_on:
+    #   - "cassandra-seed"
+
+  prometheus:
+    image: prom/prometheus:v2.11.2
+    container_name: prometheus
+    hostname: prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 300M
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus_config/prometheus.yml:/etc/prometheus/prometheus.yml
+    # command:
+    #     - '--config.file=/etc/prometheus/prom_config.yml'
+    environment:
+      TZ: UTC-8
+    depends_on:
+     - "cassandra3"
+
+  cadvisor:
+    image: google/cadvisor:v0.33.0
+    restart: unless-stopped
+    container_name: cadvisor
+    hostname: cadvisor
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 100M
+    ports:
+      - 8080:8080
+    command:
+      - "apk add --update findutils && rm -rf /var/cache/apk/*"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    privileged: true
+    depends_on:
+      - "prometheus"
+
+  node-exporter:
+    image: prom/node-exporter:v0.18.1
+    container_name: node-exporter
+    restart: on-failure
+    ports:
+      - 9100:9100
+    volumes:
+      - /:/host:ro,rslave
+    command:
+      - '--path.rootfs=/host'
+    depends_on:
+     - "prometheus"
+
+  grafana:
+    build: ./grafana_config
+    container_name: grafana
+    hostname: grafana
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 100M
+    ports:
+      - 3000:3000
+    environment:
+      TZ: Asia/Taipei
+      #  GF_SECURITY_ADMIN_USER: ${ADMIN_USER:-admin}
+      #  GF_SECURITY_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      #  GF_USERS_ALLOW_SIGN_UP: 'false'
+      # volumes:
+      #   - ./grafana_config/provisioning:/etc/grafana/provisioning
+      #   - ./grafana_config/config.ini:/etc/grafana/config.ini
+      #   - ./grafana_config/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+     - "prometheus"

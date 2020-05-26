@@ -1,0 +1,9 @@
+datasources:
+- name: 'prometheus'
+  type: 'prometheus'              # type of the data source
+  access: 'proxy'                 # make grafana perform the requests
+  org_id: 1
+  url: 'http://prometheus:9090'   # url of the prom instance
+  is_default: true                # whether this should be the default DS
+  version: 1
+  editable: true                  # whether it should be editable
