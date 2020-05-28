@@ -24,23 +24,10 @@ scrape_configs:
     # metrics_path defaults to '/metrics'
     # scheme defaults to 'http'.
 
-  - job_name: 'cassandra1'
+  - job_name: 'cassandra_monitor'
     scrape_interval: 5s
     static_configs:
-      - targets:
-        - cassandra1:6121
- 
-  - job_name: 'cassandra2'
-    scrape_interval: 5s
-    static_configs:
-      - targets:
-        - cassandra2:6121
- 
-  - job_name: 'cassandra3'
-    scrape_interval: 5s
-    static_configs:
-      - targets:
-        - cassandra3:6121 
+      - targets: ['cassandra1:6121', 'cassandra2:6121', 'cassandra3:6121']
 
   - job_name: "node-exporter"
     scrape_interval: 5s
