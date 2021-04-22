@@ -1,0 +1,21 @@
+# 其他配置部分的默認設置
+global:
+  resolve_timeout: 5m # 未收到標記告警通知，等待 timeout 時間之後事件標記為 resolve。
+# The root node of the routing tree.
+route:
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m     # 重複發送告警的間隔時間
+  repeat_interval: 3h
+  receiver: 'chatbot'  # 將此警報發送到哪個接收者
+  routes:
+  - receiver: 'chatbot'
+    match:
+      alertname: DeadMansSwitch
+
+# A list of notification receivers.
+receivers:  # 接收方定義如何處理並發送警報。在範例中將警報發送到remote Webhook。
+  - name: 'chatbot'
+    webhook_configs:
+    - send_resolved: false
+      url: http://chatbot:8889/alerts ### chatbot ip

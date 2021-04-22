@@ -20,6 +20,8 @@
 │           └── all.yml
 ├── prometheus_config
 │   └── prometheus.yml                     # Prometheus config
+├── alertmanager.yml
 └── README.md
 ```
+
 > grafana dashboards just sample, you can import it by grafana console
